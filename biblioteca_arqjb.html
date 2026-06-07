@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ARQ.JB — Biblioteca</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F1117;--bg2:#161B27;--bg3:#1E2535;--bg4:#252E42;
+  --border:#2A3347;--border2:#334060;
+  --text:#E8EBF2;--text2:#8B96B0;--text3:#5A6480;
+  --blue:#4A9EFF;--blue2:#1E4A8A;--blue3:#0D2550;
+  --green:#3DD68C;--green2:#0D3D26;
+  --yellow:#F5C842;--yellow2:#3D3010;
+  --red:#FF5A5A;--red2:#3D1010;
+  --purple:#A78BFA;--purple2:#2D1F5E;
+  --orange:#FF8C42;
+  --radius:6px;--radius2:10px;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+input,textarea,select{font-family:var(--sans);font-size:13px;color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;outline:none;transition:border .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+select option{background:var(--bg3)}
+button{font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);border-radius:var(--radius);padding:6px 12px;transition:all .15s}
+button:hover{background:var(--bg4);color:var(--text);border-color:var(--blue)}
+button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+button.primary:hover{background:#6AB4FF;border-color:#6AB4FF}
+button.danger{color:var(--red)}
+button.danger:hover{background:var(--red2);border-color:var(--red)}
+
+/* LAYOUT */
+#shell{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:200px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0}
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+
+/* SIDEBAR */
+.sb-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+.sb-logo .name{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text);letter-spacing:.04em}
+.sb-logo .sub{font-size:11px;color:var(--text3);margin-top:2px}
+.sb-count{font-family:var(--mono);font-size:11px;color:var(--text3);padding:10px 16px 6px;text-transform:uppercase;letter-spacing:.06em}
+.sb-nav{flex:1;padding:4px 8px}
+.sb-btn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:var(--radius);border:none;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;text-align:left}
+.sb-btn:hover{background:var(--bg3);color:var(--text)}
+.sb-btn.active{background:var(--bg3);color:var(--text);border-left:2px solid var(--blue)}
+.sb-btn svg{opacity:.7;flex-shrink:0}
+.sb-btn.active svg{opacity:1}
+.sb-sep{height:1px;background:var(--border);margin:6px 8px}
+.sb-stats{padding:12px 16px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sb-stat{background:var(--bg3);border-radius:var(--radius);padding:8px;text-align:center}
+.sb-stat-n{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text)}
+.sb-stat-l{font-size:10px;color:var(--text3);margin-top:1px}
+
+/* HEADER */
+#topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+#topbar h1{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--text)}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+
+/* CONTENT */
+#content{flex:1;padding:20px 24px;overflow-y:auto}
+.screen{display:none}.screen.on{display:block}
+
+/* CARDS */
+.item-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.item-card:hover{border-color:var(--border2);background:var(--bg3)}
+.item-card.selected{border-color:var(--blue);background:var(--bg3)}
+.card-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-title{font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-meta{font-size:11px;color:var(--text3);margin-top:4px;font-family:var(--mono)}
+.card-desc{font-size:12px;color:var(--text2);margin-top:5px;line-height:1.5}
+.tags{display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0}
+
+/* TAGS */
+.tag{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:3px;white-space:nowrap;font-weight:500}
+.tag.meta{background:var(--purple2);color:var(--purple)}
+.tag.prompt{background:var(--green2);color:var(--green)}
+.tag.frame{background:var(--yellow2);color:var(--yellow)}
+.tag.documento{background:var(--blue3);color:var(--blue)}
+.tag.ativo{background:var(--green2);color:var(--green)}
+.tag.rascunho{background:var(--bg4);color:var(--text3)}
+.tag.arquivado{background:var(--red2);color:var(--red)}
+.badge{font-family:var(--mono);font-size:10px;background:var(--bg4);color:var(--text3);padding:2px 6px;border-radius:3px}
+
+/* DETAIL PANEL */
+#detail-panel{position:fixed;right:0;top:0;bottom:0;width:420px;background:var(--bg2);border-left:1px solid var(--border);display:none;flex-direction:column;z-index:100}
+#detail-panel.open{display:flex}
+.det-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.det-title{font-size:14px;font-weight:500;color:var(--text);line-height:1.4}
+.det-body{flex:1;overflow-y:auto;padding:16px 20px}
+.det-field{margin-bottom:12px}
+.det-lbl{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.det-val{font-size:13px;color:var(--text2)}
+.det-content{font-size:12px;font-family:var(--mono);color:var(--text2);background:var(--bg3);border-radius:var(--radius);padding:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;line-height:1.6}
+.det-actions{padding:16px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
+.chain{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.chain-pill{font-size:11px;font-family:var(--mono);padding:3px 8px;border-radius:3px;background:var(--bg4);color:var(--text3);cursor:pointer;border:1px solid transparent}
+.chain-pill:hover{border-color:var(--border2);color:var(--text)}
+.chain-pill.cur{background:var(--blue3);color:var(--blue);border-color:var(--blue2)}
+
+/* FORM */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:20px}
+.form-section{margin-bottom:20px}
+.form-title{font-family:var(--mono);font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.field{margin-bottom:12px}
+.lbl{font-size:11px;color:var(--text3);margin-bottom:4px;display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+input[type=text],textarea,select{width:100%}
+textarea{min-height:100px;resize:vertical;font-family:var(--mono)}
+.drop-zone{border:1px dashed var(--border2);border-radius:var(--radius);padding:20px;text-align:center;color:var(--text3);cursor:pointer;transition:all .15s;font-size:12px}
+.drop-zone:hover,.drop-zone.over{border-color:var(--blue);color:var(--blue);background:var(--blue3)}
+.autofill-hint{font-size:11px;color:var(--green);margin-top:4px;font-family:var(--mono)}
+.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+/* SEARCH */
+.search-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.search-bar input{flex:1}
+.filter-row{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.filter-btn{font-size:11px;font-family:var(--mono);padding:4px 10px;background:transparent;color:var(--text3);border-color:var(--border)}
+.filter-btn.active{background:var(--blue3);color:var(--blue);border-color:var(--blue2)}
+
+/* PROXIMITY WARN */
+.warn-box{background:var(--yellow2);border:1px solid #5A4500;border-radius:var(--radius);padding:14px;margin-bottom:14px}
+.warn-title{font-size:12px;font-weight:500;color:var(--yellow);margin-bottom:6px}
+.warn-text{font-size:12px;color:#C9A840;margin-bottom:10px}
+.warn-actions{display:flex;gap:6px;flex-wrap:wrap}
+
+/* SYNC */
+.sync-log{font-family:var(--mono);font-size:11px;background:var(--bg3);border-radius:var(--radius);padding:12px;max-height:180px;overflow-y:auto;white-space:pre-wrap;color:var(--text3);margin-top:10px;line-height:1.7}
+.sync-dot{font-size:11px;font-family:var(--mono);padding:3px 8px;border-radius:3px;background:var(--bg4);color:var(--text3)}
+.sync-dot.ok{background:var(--green2);color:var(--green)}
+
+/* MANUAL */
+.man-warn{background:var(--yellow2);border:1px solid #5A4500;border-radius:var(--radius2);padding:16px;margin-bottom:16px}
+.man-warn h3{font-size:12px;color:var(--yellow);margin-bottom:8px;font-family:var(--mono)}
+.man-warn li{font-size:12px;color:#C9A840;line-height:1.8;margin-left:16px}
+.man-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;margin-bottom:10px}
+.man-section h3{font-size:11px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.man-section p,.man-section li{font-size:12px;color:var(--text2);line-height:1.7}
+.man-section ul{padding-left:16px}
+.step{display:flex;gap:10px;margin-bottom:8px}
+.step-n{min-width:20px;height:20px;border-radius:50%;background:var(--bg4);color:var(--text3);font-size:10px;font-family:var(--mono);font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-t{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* FLASH */
+.flash{font-size:11px;font-family:var(--mono);color:var(--green);min-height:16px;margin-top:6px}
+.flash.err{color:var(--red)}
+
+/* BACKUP BANNER */
+#backup-banner{background:var(--yellow2);border-bottom:1px solid #5A4500;padding:8px 24px;font-size:12px;color:var(--yellow);display:none;align-items:center;justify-content:space-between;flex-shrink:0}
+#backup-banner button{font-size:11px;padding:3px 10px;background:transparent;border-color:var(--yellow);color:var(--yellow)}
+#backup-banner button:hover{background:var(--yellow);color:#000}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty p{font-size:13px;margin-bottom:12px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="shell">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-logo">
+      <div class="name">ARQ.JB</div>
+      <div class="sub">Biblioteca de PMFs</div>
+    </div>
+    <div class="sb-count" id="sb-count">0 itens</div>
+    <nav class="sb-nav">
+      <button class="sb-btn active" onclick="show('lib')" id="tab-lib">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        Biblioteca
+      </button>
+      <button class="sb-btn" onclick="show('new')" id="tab-new">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Cadastrar
+      </button>
+      <div class="sb-sep"></div>
+      <button class="sb-btn" onclick="show('sync')" id="tab-sync">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+        Bocal
+      </button>
+      <button class="sb-btn" onclick="show('exp')" id="tab-exp">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Exportar
+      </button>
+      <div class="sb-sep"></div>
+      <button class="sb-btn" onclick="show('man')" id="tab-man">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        Manual
+      </button>
+    </nav>
+    <div class="sb-stats">
+      <div class="sb-stat"><div class="sb-stat-n" id="s-meta">0</div><div class="sb-stat-l">metas</div></div>
+      <div class="sb-stat"><div class="sb-stat-n" id="s-prompt">0</div><div class="sb-stat-l">prompts</div></div>
+      <div class="sb-stat"><div class="sb-stat-n" id="s-frame">0</div><div class="sb-stat-l">frames</div></div>
+      <div class="sb-stat"><div class="sb-stat-n" id="s-doc">0</div><div class="sb-stat-l">docs</div></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <div id="backup-banner">
+      <span id="backup-msg"></span>
+      <button onclick="exportJSON()">Exportar JSON agora</button>
+    </div>
+    <div id="topbar">
+      <h1 id="topbar-title">Biblioteca</h1>
+      <div class="topbar-actions">
+        <span class="sync-dot" id="sync-dot-top">—</span>
+      </div>
+    </div>
+    <div id="content">
+
+      <!-- BIBLIOTECA -->
+      <div id="screen-lib" class="screen on">
+        <div class="search-bar">
+          <input type="text" id="search" placeholder="Buscar nome, categoria, descrição..." oninput="renderLib()"/>
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="setFilter('todos',this)">Todos</button>
+          <button class="filter-btn" onclick="setFilter('meta',this)">Meta</button>
+          <button class="filter-btn" onclick="setFilter('prompt',this)">Prompt</button>
+          <button class="filter-btn" onclick="setFilter('frame',this)">Frame</button>
+          <button class="filter-btn" onclick="setFilter('documento',this)">Documento</button>
+        </div>
+        <div id="lib-list"></div>
+        <div id="lib-empty" class="empty" style="display:none">
+          <p>Catálogo vazio.</p>
+          <button onclick="show('new')">+ Cadastrar primeiro item</button>
+        </div>
+      </div>
+
+      <!-- CADASTRAR -->
+      <div id="screen-new" class="screen">
+        <div class="form-card">
+          <div class="form-section">
+            <div class="form-title" id="form-title">Cadastrar item</div>
+            <div class="field">
+              <label class="lbl">Conteúdo — arraste um .txt ou cole aqui</label>
+              <div class="drop-zone" id="drop-zone" ondragover="dragOver(event)" ondragleave="dragLeave()" ondrop="dropFile(event)" onclick="document.getElementById('file-input').click()">
+                ↑ arraste um .txt ou clique para selecionar
+              </div>
+              <input type="file" id="file-input" accept=".txt,.md" style="display:none" onchange="fileSelected(event)"/>
+              <textarea id="f-body" placeholder="ou cole o texto completo aqui..." style="margin-top:8px" oninput="scheduleAutoFill()"></textarea>
+              <div class="autofill-hint" id="autofill-hint" style="display:none">✦ campos preenchidos automaticamente — revise antes de salvar</div>
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="form-title">Metadados</div>
+            <div class="grid3">
+              <div class="field"><label class="lbl">Tipo</label>
+                <select id="f-tipo">
+                  <option value="meta">Metaprompt</option>
+                  <option value="prompt">Prompt</option>
+                  <option value="frame">Frame</option>
+                  <option value="documento">Documento</option>
+                </select>
+              </div>
+              <div class="field"><label class="lbl">Status</label>
+                <select id="f-status">
+                  <option value="ativo">Ativo</option>
+                  <option value="rascunho">Rascunho</option>
+                  <option value="arquivado">Arquivado</option>
+                </select>
+              </div>
+              <div class="field"><label class="lbl">Versão</label>
+                <input type="text" id="f-ver" placeholder="v1.0"/>
+              </div>
+            </div>
+            <div class="field"><label class="lbl">Nome</label>
+              <input type="text" id="f-nome" placeholder="Ex: ARQUIVISTA v23"/>
+            </div>
+            <div class="grid2">
+              <div class="field"><label class="lbl">Categoria</label>
+                <select id="f-dominio" onchange="toggleOutros()">
+                  <option value="">Selecionar...</option>
+                  <option>Governança</option><option>Controle</option>
+                  <option>Gestão do Conhecimento</option><option>Consultoria</option>
+                  <option>Corregedoria</option><option>Produção</option>
+                  <option>Engenharia</option><option>Pessoal</option>
+                  <option>Profissional</option><option>Direito</option>
+                  <option>Imagens</option><option value="outros">Outros →</option>
+                </select>
+                <input type="text" id="f-dominio-custom" placeholder="categoria livre..." style="display:none;margin-top:6px"/>
+              </div>
+              <div class="field"><label class="lbl">Autor / origem</label>
+                <input type="text" id="f-autor" placeholder="Ex: JB"/>
+              </div>
+            </div>
+            <div class="field"><label class="lbl">Descrição</label>
+              <input type="text" id="f-desc" placeholder="Para que serve"/>
+            </div>
+            <div class="grid2">
+              <div class="field"><label class="lbl">Dependências</label>
+                <input type="text" id="f-deps" placeholder="Ex: CM v12, MB v9"/>
+              </div>
+              <div class="field"><label class="lbl">Observações</label>
+                <input type="text" id="f-obs" placeholder="Tags, notas livres"/>
+              </div>
+            </div>
+            <div class="field" id="parent-field" style="display:none"><label class="lbl">Versão anterior (linhagem)</label>
+              <select id="f-parent"><option value="">Nenhuma</option></select>
+            </div>
+          </div>
+          <div id="proximity-warn" class="warn-box" style="display:none">
+            <div class="warn-title">⚠ Proximidade temática detectada</div>
+            <div class="warn-text" id="proximity-msg"></div>
+            <div class="warn-actions">
+              <button onclick="resolveProximity('nova')">A) Nova entrada</button>
+              <button onclick="resolveProximity('versao')">B) Nova versão</button>
+              <button onclick="resolveProximity('substituir')">C) Substituir</button>
+              <button onclick="resolveProximity('ignorar')">D) Cancelar</button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="primary" onclick="checkAndSave(false)">✓ Salvar</button>
+            <button onclick="cancelForm()">Cancelar</button>
+          </div>
+          <div class="flash" id="form-flash"></div>
+        </div>
+      </div>
+
+      <!-- BOCAL -->
+      <div id="screen-sync" class="screen">
+        <div class="form-card" style="margin-bottom:12px">
+          <div class="form-title" style="margin-bottom:12px;font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Bocal — sync com Arquivista</div>
+          <div class="field"><label class="lbl">JSON da Arquivista</label>
+            <textarea id="sync-input" placeholder='[{"id":"ARQ-001","nome":"..."}]' style="min-height:80px"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="primary" onclick="runSync()">⇄ Sincronizar</button>
+            <button onclick="exportForArquivista()">↑ Gerar saída p/ Arquivista</button>
+          </div>
+          <div class="sync-log" id="sync-log" style="display:none"></div>
+          <div class="flash" id="sync-flash"></div>
+        </div>
+        <div class="form-card" id="sync-preview" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:11px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Saída para Arquivista</span>
+            <button onclick="copySyncOut()">Copiar</button>
+          </div>
+          <div class="det-content" id="sync-out-text" style="max-height:200px"></div>
+        </div>
+      </div>
+
+      <!-- EXPORTAR -->
+      <div id="screen-exp" class="screen">
+        <div class="form-card">
+          <div class="form-title" style="margin-bottom:16px;font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Exportar / Importar</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button onclick="exportTXT()" style="padding:10px 14px;text-align:left">📄 Exportar TXT — catálogo completo legível</button>
+            <button onclick="exportJSON()" style="padding:10px 14px;text-align:left">{ } Exportar JSON — backup completo</button>
+            <button onclick="importJSON()" style="padding:10px 14px;text-align:left">↑ Importar JSON</button>
+            <input type="file" id="import-file" accept=".json" style="display:none" onchange="loadImport(event)"/>
+          </div>
+          <div class="flash" id="exp-flash" style="margin-top:12px"></div>
+        </div>
+        <div class="form-card" id="exp-preview" style="display:none;margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <span style="font-size:11px;font-family:var(--mono);color:var(--text3)">Prévia</span>
+            <button onclick="copyExport()">Copiar</button>
+          </div>
+          <div class="det-content" id="exp-text" style="max-height:300px"></div>
+        </div>
+      </div>
+
+      <!-- MANUAL -->
+      <div id="screen-man" class="screen">
+        <div class="man-warn">
+          <h3>⚠ Precauções</h3>
+          <ul>
+            <li>Dados ficam no localStorage do navegador. Não limpe o cache sem exportar o JSON antes.</li>
+            <li>Não use modo anônimo — o localStorage não persiste.</li>
+            <li>Exporte o JSON periodicamente como backup soberano.</li>
+            <li>Excluir um item é permanente — sem desfazer.</li>
+            <li>Ao usar em outro PC ou navegador, importe o JSON.</li>
+          </ul>
+        </div>
+        <div class="man-section">
+          <h3>O que é o app</h3>
+          <p>Biblioteca local de metaprompts, prompts, frames e documentos do ecossistema ARQ.JB. Roda offline no navegador. Dados salvos no localStorage. Sync com a Arquivista via bocal JSON.</p>
+        </div>
+        <div class="man-section">
+          <h3>Cadastrar um item</h3>
+          <div class="step"><div class="step-n">1</div><div class="step-t">Arraste um .txt para a zona de drop ou cole o conteúdo no campo de texto.</div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-t">O app tenta preencher nome, versão e categoria automaticamente. Revise.</div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-t">Se houver item similar, o app avisa antes de salvar.</div></div>
+          <div class="step"><div class="step-n">4</div><div class="step-t">Clique Salvar. Item entra numerado por ordem cronológica.</div></div>
+        </div>
+        <div class="man-section">
+          <h3>Versionar</h3>
+          <div class="step"><div class="step-n">1</div><div class="step-t">Abra a ficha do item → botão "Nova versão".</div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-t">Edite o conteúdo, ajuste a versão. Salve.</div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-t">A linhagem aparece como pílulas na ficha de qualquer item da cadeia.</div></div>
+        </div>
+        <div class="man-section">
+          <h3>Sync com a Arquivista</h3>
+          <div class="step"><div class="step-n">1</div><div class="step-t">Na Arquivista: <em>exportar catálogo</em> → copia o JSON.</div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-t">No app: aba Bocal → cola → Sincronizar.</div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-t">Para fechar o ciclo: Gerar saída p/ Arquivista → copia → na Arquivista: <em>importar do app</em>.</div></div>
+        </div>
+        <div class="man-section">
+          <h3>Backup</h3>
+          <div class="step"><div class="step-n">1</div><div class="step-t">Exportar → Exportar JSON → salvar o arquivo em local seguro (Drive, OneDrive, etc).</div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-t">Para restaurar: Exportar → Importar JSON.</div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-t">O app avisa quando faz mais de 7 dias sem backup.</div></div>
+        </div>
+        <div class="man-section">
+          <h3>Categorias</h3>
+          <p style="font-family:var(--mono);font-size:11px;line-height:2;color:var(--text3)">Governança · Controle · Gestão do Conhecimento · Consultoria · Corregedoria · Produção · Engenharia · Pessoal · Profissional · Direito · Imagens · Outros</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div id="detail-panel">
+    <div class="det-header">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+          <span class="badge" id="det-num"></span>
+          <span id="det-tipo" class="tag"></span>
+          <span id="det-status" class="tag"></span>
+        </div>
+        <div class="det-title" id="det-nome"></div>
+      </div>
+      <button onclick="closeDetail()" style="flex-shrink:0">✕</button>
+    </div>
+    <div class="det-body">
+      <div id="det-chain" style="display:none;margin-bottom:12px">
+        <div class="det-lbl">Linhagem</div>
+        <div class="chain" id="det-chain-pills"></div>
+      </div>
+      <div id="det-fields"></div>
+      <div class="det-field">
+        <div class="det-lbl">Conteúdo</div>
+        <div class="det-content" id="det-body-content"></div>
+      </div>
+    </div>
+    <div class="det-actions">
+      <button class="primary" onclick="copyPMF()">Copiar PMF</button>
+      <button onclick="newVersionOf()">Nova versão</button>
+      <button onclick="editPMF()">Editar</button>
+      <button class="danger" onclick="deletePMF()">Excluir</button>
+      <div class="flash" id="det-flash" style="width:100%"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE_KEY='arqjb_local_v1';
+const BACKUP_KEY='arqjb_last_backup';
+let items=[],editingId=null,activeDetail=null,activeFilter='todos',pendingProximity=null,autoFillTimer=null;
+
+function dateToMs(d){if(!d)return 0;const p=d.split('/');if(p.length===3)return new Date(p[2],p[1]-1,p[0]).getTime();return new Date(d).getTime()||0;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function nowStr(){return new Date().toLocaleDateString('pt-BR');}
+
+function load(){
+  try{const r=localStorage.getItem(STORE_KEY);items=r?JSON.parse(r):[];}catch(e){items=[];}
+  renumber();updateSidebar();renderLib();checkBackupWarning();
+}
+
+function persist(){
+  renumber();
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(items));}catch(e){}
+}
+
+function renumber(){
+  items.sort((a,b)=>dateToMs(a.dataCriacao)-dateToMs(b.dataCriacao));
+  items.forEach((p,i)=>{p.seq=i+1;});
+}
+
+function updateSidebar(){
+  document.getElementById('sb-count').textContent=items.length+' item'+(items.length!==1?'s':'');
+  document.getElementById('s-meta').textContent=items.filter(p=>p.tipo==='meta').length;
+  document.getElementById('s-prompt').textContent=items.filter(p=>p.tipo==='prompt').length;
+  document.getElementById('s-frame').textContent=items.filter(p=>p.tipo==='frame').length;
+  document.getElementById('s-doc').textContent=items.filter(p=>p.tipo==='documento').length;
+}
+
+function checkBackupWarning(){
+  const last=localStorage.getItem(BACKUP_KEY);
+  const banner=document.getElementById('backup-banner');
+  if(!last){
+    if(items.length>0){banner.style.display='flex';document.getElementById('backup-msg').textContent='Nenhum backup registrado — exporte o JSON para garantir seus dados.';}
+    return;
+  }
+  const days=Math.floor((Date.now()-parseInt(last))/(1000*60*60*24));
+  if(days>=7){banner.style.display='flex';document.getElementById('backup-msg').textContent=`Último backup há ${days} dias — recomendado exportar o JSON.`;}
+  else{banner.style.display='none';}
+}
+
+const titles={'lib':'Biblioteca','new':'Cadastrar','sync':'Bocal','exp':'Exportar','man':'Manual'};
+function show(s){
+  ['lib','new','sync','exp','man'].forEach(id=>{
+    document.getElementById('screen-'+id).classList.toggle('on',id===s);
+    document.getElementById('tab-'+id).classList.toggle('active',id===s);
+  });
+  document.getElementById('topbar-title').textContent=titles[s]||s;
+  if(s!=='lib')closeDetail();
+  if(s==='new')populateParentSelect();
+}
+
+function setFilter(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');renderLib();
+}
+
+function renderLib(){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  const filtered=items.filter(p=>{
+    const mF=activeFilter==='todos'||p.tipo===activeFilter;
+    const mQ=!q||p.nome.toLowerCase().includes(q)||(p.dominio||'').toLowerCase().includes(q)||(p.desc||'').toLowerCase().includes(q);
+    return mF&&mQ;
+  });
+  const list=document.getElementById('lib-list');
+  const empty=document.getElementById('lib-empty');
+  if(!filtered.length){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=filtered.map(p=>`
+    <div class="item-card ${activeDetail&&activeDetail.id===p.id?'selected':''}" onclick="openDetail('${p.id}')">
+      <div class="card-row">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+          <span class="badge">#${p.seq||'?'}</span>
+          <span class="card-title">${p.nome}</span>
+        </div>
+        <div class="tags">
+          <span class="tag ${p.tipo}">${p.tipo}</span>
+          <span class="tag ${p.status}">${p.status}</span>
+        </div>
+      </div>
+      <div class="card-meta">${p.ver||'—'} · ${p.dominio||'—'} · ${p.dataCriacao||'—'}</div>
+      ${p.desc?`<div class="card-desc">${p.desc}</div>`:''}
+    </div>`).join('');
+}
+
+function getChain(id){
+  const chain=[];let cur=items.find(p=>p.id===id);
+  while(cur){chain.unshift(cur);cur=cur.parentId?items.find(p=>p.id===cur.parentId):null;}
+  let nxt=items.find(p=>p.parentId===id);
+  while(nxt){chain.push(nxt);nxt=items.find(p=>p.parentId===nxt.id);}
+  return chain;
+}
+
+function openDetail(id){
+  activeDetail=items.find(p=>p.id===id);if(!activeDetail)return;
+  const a=activeDetail;
+  document.getElementById('det-num').textContent='#'+a.seq;
+  document.getElementById('det-nome').textContent=a.nome;
+  const tt=document.getElementById('det-tipo');tt.textContent=a.tipo;tt.className='tag '+a.tipo;
+  const ts=document.getElementById('det-status');ts.textContent=a.status;ts.className='tag '+a.status;
+  const chain=getChain(a.id);
+  if(chain.length>1){
+    document.getElementById('det-chain').style.display='block';
+    document.getElementById('det-chain-pills').innerHTML=chain.map((c,i)=>`<span class="chain-pill ${c.id===a.id?'cur':''}" onclick="openDetail('${c.id}')">${c.ver||c.nome.slice(0,10)}</span>${i<chain.length-1?'<span style="color:var(--text3);font-size:11px;margin:0 2px">→</span>':''}`).join('');
+  } else {document.getElementById('det-chain').style.display='none';}
+  const fields=[['Versão',a.ver||'—'],['Categoria',a.dominio||'—'],['Autor',a.autor||'—'],['Dependências',a.deps||'—'],['Criado',a.dataCriacao||'—'],['Atualizado',a.dataAtualizacao||'—'],['Obs',a.obs||'—']];
+  document.getElementById('det-fields').innerHTML=fields.map(([l,v])=>`<div class="det-field"><div class="det-lbl">${l}</div><div class="det-val">${v}</div></div>`).join('');
+  document.getElementById('det-body-content').textContent=a.body||'(sem conteúdo)';
+  document.getElementById('det-flash').textContent='';
+  document.getElementById('detail-panel').classList.add('open');
+  renderLib();
+}
+
+function closeDetail(){document.getElementById('detail-panel').classList.remove('open');activeDetail=null;renderLib();}
+function copyPMF(){if(!activeDetail)return;navigator.clipboard.writeText(activeDetail.body||'').then(()=>flash('det-flash','Copiado.'));}
+
+function newVersionOf(){
+  if(!activeDetail)return;
+  const p=activeDetail;editingId=null;clearForm();
+  document.getElementById('f-nome').value=p.nome;
+  document.getElementById('f-tipo').value=p.tipo;
+  document.getElementById('f-desc').value=p.desc||'';
+  document.getElementById('f-deps').value=p.deps||'';
+  document.getElementById('f-autor').value=p.autor||'';
+  document.getElementById('f-body').value=p.body||'';
+  const n=parseInt((p.ver||'v1').replace(/[^0-9]/g,''))||1;
+  document.getElementById('f-ver').value='v'+(n+1)+'.0';
+  const cats=['Governança','Controle','Gestão do Conhecimento','Consultoria','Corregedoria','Produção','Engenharia','Pessoal','Profissional','Direito','Imagens'];
+  if(cats.includes(p.dominio))document.getElementById('f-dominio').value=p.dominio;
+  document.getElementById('parent-field').style.display='block';
+  populateParentSelect(p.id);
+  document.getElementById('form-title').textContent='Nova versão de: '+p.nome;
+  show('new');
+}
+
+function editPMF(){
+  if(!activeDetail)return;
+  editingId=activeDetail.id;const a=activeDetail;
+  ['tipo','status','nome','ver','desc','deps','autor','obs','body'].forEach(f=>{const el=document.getElementById('f-'+f);if(el)el.value=a[f]||'';});
+  const cats=['Governança','Controle','Gestão do Conhecimento','Consultoria','Corregedoria','Produção','Engenharia','Pessoal','Profissional','Direito','Imagens'];
+  if(cats.includes(a.dominio)){document.getElementById('f-dominio').value=a.dominio;}
+  else if(a.dominio){document.getElementById('f-dominio').value='outros';document.getElementById('f-dominio-custom').style.display='block';document.getElementById('f-dominio-custom').value=a.dominio;}
+  if(a.parentId){document.getElementById('parent-field').style.display='block';populateParentSelect(a.parentId);}
+  document.getElementById('form-title').textContent='Editar: '+a.nome;
+  show('new');
+}
+
+function deletePMF(){
+  if(!activeDetail)return;
+  if(!confirm('Excluir "'+activeDetail.nome+'"? Esta ação é permanente.'))return;
+  items=items.filter(p=>p.id!==activeDetail.id);
+  persist();updateSidebar();closeDetail();
+}
+
+function toggleOutros(){
+  const v=document.getElementById('f-dominio').value;
+  document.getElementById('f-dominio-custom').style.display=v==='outros'?'block':'none';
+}
+
+function populateParentSelect(selectedId){
+  const sel=document.getElementById('f-parent');
+  sel.innerHTML='<option value="">Nenhuma</option>'+items.filter(p=>p.id!==editingId).map(p=>`<option value="${p.id}" ${p.id===selectedId?'selected':''}>#${p.seq} ${p.nome} ${p.ver||''}</option>`).join('');
+}
+
+function getDominio(){
+  const v=document.getElementById('f-dominio').value;
+  return v==='outros'?document.getElementById('f-dominio-custom').value.trim():v;
+}
+
+function checkProximity(nome){
+  const q=nome.toLowerCase();
+  return items.filter(p=>p.id!==editingId&&(p.nome.toLowerCase().includes(q.slice(0,8))||q.includes(p.nome.toLowerCase().slice(0,8))));
+}
+
+function checkAndSave(){
+  const nome=document.getElementById('f-nome').value.trim();
+  if(!nome){flash('form-flash','Nome obrigatório.');return;}
+  document.getElementById('proximity-warn').style.display='none';
+  const similar=checkProximity(nome);
+  if(similar.length&&!editingId){
+    pendingProximity=similar;
+    document.getElementById('proximity-msg').textContent=`Item similar: "${similar[0].nome}" (${similar[0].ver||'—'}). Como prosseguir?`;
+    document.getElementById('proximity-warn').style.display='block';
+    return;
+  }
+  doSave();
+}
+
+function resolveProximity(choice){
+  document.getElementById('proximity-warn').style.display='none';
+  if(choice==='ignorar'){pendingProximity=null;return;}
+  if(choice==='versao'&&pendingProximity){document.getElementById('parent-field').style.display='block';populateParentSelect(pendingProximity[0].id);}
+  if(choice==='substituir'&&pendingProximity){editingId=pendingProximity[0].id;}
+  pendingProximity=null;doSave();
+}
+
+function doSave(){
+  const today=nowStr();
+  const entry={
+    id:editingId||uid(),tipo:document.getElementById('f-tipo').value,
+    status:document.getElementById('f-status').value,
+    nome:document.getElementById('f-nome').value.trim(),
+    ver:document.getElementById('f-ver').value.trim(),
+    dominio:getDominio(),desc:document.getElementById('f-desc').value.trim(),
+    deps:document.getElementById('f-deps').value.trim(),autor:document.getElementById('f-autor').value.trim(),
+    obs:document.getElementById('f-obs').value.trim(),body:document.getElementById('f-body').value.trim(),
+    parentId:document.getElementById('f-parent').value||null,dataAtualizacao:today,
+  };
+  if(editingId){
+    const idx=items.findIndex(p=>p.id===editingId);
+    if(idx>=0){entry.dataCriacao=items[idx].dataCriacao;items[idx]=entry;}
+    editingId=null;
+  } else {entry.dataCriacao=today;items.unshift(entry);}
+  persist();updateSidebar();
+  flash('form-flash','Salvo.');
+  setTimeout(()=>{show('lib');clearForm();},700);
+}
+
+function clearForm(){
+  ['f-nome','f-ver','f-desc','f-deps','f-autor','f-obs','f-body','f-dominio-custom'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-tipo').value='meta';document.getElementById('f-status').value='ativo';
+  document.getElementById('f-dominio').value='';document.getElementById('f-dominio-custom').style.display='none';
+  document.getElementById('parent-field').style.display='none';document.getElementById('proximity-warn').style.display='none';
+  document.getElementById('autofill-hint').style.display='none';
+  document.getElementById('form-title').textContent='Cadastrar item';
+  editingId=null;pendingProximity=null;
+}
+
+function cancelForm(){clearForm();show('lib');}
+
+function dragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('over');}
+function dragLeave(){document.getElementById('drop-zone').classList.remove('over');}
+function dropFile(e){e.preventDefault();dragLeave();const f=e.dataTransfer.files[0];if(f)readFile(f);}
+function fileSelected(e){const f=e.target.files[0];if(f)readFile(f);}
+function readFile(f){
+  const r=new FileReader();
+  r.onload=ev=>{document.getElementById('f-body').value=ev.target.result;scheduleAutoFill();};
+  r.readAsText(f);
+}
+
+function scheduleAutoFill(){
+  clearTimeout(autoFillTimer);
+  autoFillTimer=setTimeout(()=>{
+    const body=document.getElementById('f-body').value;
+    if(body.length<50)return;
+    const verMatch=body.match(/v(\d+[\.\d]*)/i);
+    const nameMatch=body.match(/(?:METAPROMPT|MÓDULO|MODULO|PROTOCOLO|ARQUIVISTA|CARTÓGRAFO|ORGANIZADOR|GOUVEIA|ESPECIALISTA|CONSULTOR|CARTOGRAFO)[^\n]*/i)||body.match(/^#\s*(.+)/m)||body.match(/^([A-ZÁÉÍÓÚ][A-ZÁÉÍÓÚ\s\-]{3,50})\n/m);
+    if(nameMatch&&!document.getElementById('f-nome').value)document.getElementById('f-nome').value=nameMatch[0].replace(/^#+\s*/,'').trim().slice(0,60);
+    if(verMatch&&!document.getElementById('f-ver').value)document.getElementById('f-ver').value='v'+verMatch[1];
+    const bl=body.toLowerCase();
+    if(bl.includes('metaprompt')||bl.includes('módulo'))document.getElementById('f-tipo').value='meta';
+    else if(bl.includes('protocolo')||bl.includes('frame'))document.getElementById('f-tipo').value='frame';
+    const dm={'constituição':'Governança','módulo base':'Governança','arquivista':'Gestão do Conhecimento','corregedoria':'Corregedoria','saturação':'Controle','anti-drift':'Controle','imagem':'Imagens'};
+    for(const[k,v] of Object.entries(dm)){if(bl.includes(k)){document.getElementById('f-dominio').value=v;break;}}
+    document.getElementById('autofill-hint').style.display='block';
+  },600);
+}
+
+function formatTxt(p){
+  return['============================================================',
+    `#${p.seq||'?'} [${p.tipo.toUpperCase()}] ${p.nome} | ${p.ver||'—'} | ${p.status}`,
+    `Categoria: ${p.dominio||'—'} | Autor: ${p.autor||'—'}`,
+    `Criado: ${p.dataCriacao||'—'} | Atualizado: ${p.dataAtualizacao||'—'}`,
+    `Deps: ${p.deps||'—'}`,`Descrição: ${p.desc||'—'}`,
+    p.obs?`Obs: ${p.obs}`:null,
+    p.parentId?`Versão de: #${(items.find(x=>x.id===p.parentId)||{}).seq||'?'}`:null,
+    '------------------------------------------------------------',
+    p.body||'(sem conteúdo)','',
+  ].filter(v=>v!==null).join('\n');
+}
+
+function runSync(){
+  const raw=document.getElementById('sync-input').value.trim();
+  if(!raw){flash('sync-flash','Cole o JSON da Arquivista.');return;}
+  let inc;try{inc=JSON.parse(raw);}catch(e){flash('sync-flash','JSON inválido.');return;}
+  if(!Array.isArray(inc)){flash('sync-flash','Esperado array JSON.');return;}
+  const log=[],merged=[...items];let added=0,updated=0;
+  inc.forEach(ext=>{
+    const idx=merged.findIndex(p=>p.id===ext.id);
+    if(idx===-1){merged.push({...ext,dataAtualizacao:ext.dataAtualizacao||nowStr()});added++;log.push(`+ NOVO: ${ext.nome}`);}
+    else{
+      const tL=dateToMs(merged[idx].dataAtualizacao),tE=dateToMs(ext.dataAtualizacao);
+      if(tE>tL){merged[idx]={...ext};updated++;log.push(`↑ ATUALIZADO: ${ext.nome}`);}
+      else log.push(`→ MANTIDO: ${merged[idx].nome}`);
+    }
+  });
+  items=merged;persist();updateSidebar();renderLib();
+  document.getElementById('sync-log').style.display='block';
+  document.getElementById('sync-log').textContent=`SYNC ${nowStr()}\n${log.join('\n')}\n\nResultado: ${added} novos, ${updated} atualizados, ${items.length} total`;
+  const dot=document.getElementById('sync-dot-top');dot.textContent='sincronizado';dot.className='sync-dot ok';
+  flash('sync-flash',`Sync concluído — ${added} novos, ${updated} atualizados.`);
+}
+
+function exportForArquivista(){
+  if(!items.length){flash('sync-flash','Biblioteca vazia.');return;}
+  document.getElementById('sync-out-text').textContent=JSON.stringify(items,null,2);
+  document.getElementById('sync-preview').style.display='block';
+}
+function copySyncOut(){navigator.clipboard.writeText(document.getElementById('sync-out-text').textContent).then(()=>flash('sync-flash','Copiado.'));}
+
+function exportTXT(){
+  if(!items.length){flash('exp-flash','Biblioteca vazia.');return;}
+  document.getElementById('exp-text').textContent=items.map(p=>formatTxt(p)).join('\n');
+  document.getElementById('exp-preview').style.display='block';
+  flash('exp-flash',items.length+' itens prontos.');
+}
+
+function exportJSON(){
+  if(!items.length){flash('exp-flash','Biblioteca vazia.');return;}
+  const json=JSON.stringify(items,null,2);
+  document.getElementById('exp-text').textContent=json;
+  document.getElementById('exp-preview').style.display='block';
+  // download automático
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='arqjb_backup_'+nowStr().replace(/\//g,'-')+'.json';
+  a.click();URL.revokeObjectURL(url);
+  localStorage.setItem(BACKUP_KEY,Date.now().toString());
+  checkBackupWarning();
+  flash('exp-flash','JSON baixado. Backup registrado.');
+}
+
+function copyExport(){navigator.clipboard.writeText(document.getElementById('exp-text').textContent).then(()=>flash('exp-flash','Copiado.'));}
+function importJSON(){document.getElementById('import-file').click();}
+function loadImport(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);if(!Array.isArray(data))throw new Error();
+      const merged=[...items];data.forEach(p=>{if(!merged.find(m=>m.id===p.id))merged.push(p);});
+      items=merged;persist();updateSidebar();renderLib();
+      flash('exp-flash',data.length+' itens importados.');
+    }catch{flash('exp-flash','Arquivo inválido.');}
+  };r.readAsText(f);
+}
+
+function flash(id,msg){const el=document.getElementById(id);if(!el)return;el.textContent=msg;setTimeout(()=>{el.textContent='';},3500);}
+
+load();
+</script>
+</body>
+</html>
